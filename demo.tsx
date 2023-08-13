@@ -1,6 +1,7 @@
 import React from 'react';
 import './index.css';
 import { Tree } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 
 function assembleTree(nodes, parent, depth, pathKey) {
@@ -68,24 +69,77 @@ const root = getPathByKey('0-0-0-0-{{2}}-{{leaf}}', treeData, 'key');
 console.log(root.filter((v) => !v.children));
 
 const App: React.FC = () => {
+  const [checkedIds, setCheckedIds] = React.useState(['sss']);
+  const [checkedKeys, setCheckedKeys] = React.useState<React.Key[]>([]);
+  const [pruningTree, setPruningTree] = React.useState<any[]>([]);
   const onSelect: TreeProps['onSelect'] = (selectedKeys, info) => {
     console.log('selected', selectedKeys, info);
   };
 
   const onCheck: TreeProps['onCheck'] = (checkedKeys, info) => {
     console.log('onCheck', checkedKeys, info);
+    console.log(checkedKeys);
+    const ids = checkedKeys.map((key) =>
+      getPathByKey(key, treeData, 'key').filter((v) => !v.children)
+    );
+    console.log(ids, 'ids');
+    setCheckedKeys(checkedKeys);
   };
 
+  function pruneTree(tree, func) {
+    // 使用map复制一下节点，避免修改到原树
+    return tree
+      .map((node) => ({ ...node }))
+      .filter((node) => {
+        node.children = node.children && pruneTree(node.children, func);
+        return func(node) || (node.children && node.children.length);
+      });
+  }
+
+  React.useEffect(() => {
+    console.log(checkedIds);
+    const ids = checkedIds.map((key) =>
+      getPathByKey(key, treeData, 'title').map((v) => v.key)
+    );
+    console.log(ids);
+    setCheckedKeys(ids.flat(2).slice(-1));
+  }, []);
+
+  React.useEffect(() => {
+    console.log('pruning');
+    console.log(checkedKeys, '222');
+    let pruningTree = pruneTree(treeData, (node) => {
+      console.log(node, 'node');
+      return checkedKeys.includes(node.key);
+    });
+    console.log(pruningTree, 'pruningTree');
+    // pruningTree = pruningTree.map((node) => ({
+    //   ...node,
+    //   title: (
+    //     <div>
+    //       {node.title}
+    //       {/* <DeleteOutlined /> */}
+    //     </div>
+    //   ),
+    // }));
+    setPruningTree(pruningTree);
+  }, [checkedKeys]);
+
   return (
-    <Tree
-      checkable
-      defaultExpandedKeys={[]}
-      defaultSelectedKeys={[]}
-      defaultCheckedKeys={[]}
-      onSelect={onSelect}
-      onCheck={onCheck}
-      treeData={treeData}
-    />
+    <>
+      <Tree
+        checkable
+        defaultExpandedKeys={[]}
+        defaultSelectedKeys={[]}
+        defaultCheckedKeys={[]}
+        checkedKeys={checkedKeys}
+        onSelect={onSelect}
+        onCheck={onCheck}
+        treeData={treeData}
+      />
+      <div>已选择</div>
+      <Tree treeData={pruningTree} />
+    </>
   );
 };
 

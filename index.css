@@ -1,0 +1,6 @@
+.preview-tree-node .del-icon {
+  opacity: 0;
+}
+.preview-tree-node:hover .del-icon {
+  opacity: 1;
+}
